@@ -22,7 +22,7 @@ extern "system" fn wndproc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPA
     }
 }
 
-fn create_window(app: &mut App) -> anyhow::Result<HWND> {
+fn create_window(app: &mut App, width: i32, height: i32) -> anyhow::Result<HWND> {
     let instance = unsafe { GetModuleHandleW(None) };
     anyhow::ensure!(!instance.is_null(), "GetModuleHandleW failed");
 
@@ -40,6 +40,9 @@ fn create_window(app: &mut App) -> anyhow::Result<HWND> {
     let atom = unsafe { RegisterClassExW(&wc) };
     anyhow::ensure!(atom != 0, "RegisterClassExW failed");
 
+    let mut window_rect = RECT { left: 0, top: 0, right: width, bottom: height };
+    unsafe { AdjustWindowRect(&mut window_rect, WS_OVERLAPPEDWINDOW, false) };
+
     let hwnd = unsafe {
         CreateWindowExW(
             Default::default(),
@@ -48,8 +51,8 @@ fn create_window(app: &mut App) -> anyhow::Result<HWND> {
             WS_OVERLAPPEDWINDOW,
             CW_USEDEFAULT,
             CW_USEDEFAULT,
-            640,
-            480,
+            window_rect.right - window_rect.left,
+            window_rect.bottom - window_rect.top,
             None,
             None,
             instance,
@@ -78,7 +81,7 @@ fn main_loop() -> anyhow::Result<()> {
 
 fn main() -> anyhow::Result<()> {
     let mut app = App {};
-    let hwnd = create_window(&mut app)?;
+    let hwnd = create_window(&mut app, 640, 480)?;
     unsafe { ShowWindow(hwnd, SW_SHOW) };
     main_loop()
 }
