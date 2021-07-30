@@ -10,6 +10,7 @@ struct App {
 }
 
 const CELL_PIXEL_SIZE: usize = 10;
+const FPS: u32 = 15;
 
 fn rgb(r: u8, g: u8, b: u8) -> u32 {
     (r as u32) | ((g as u32) << 8) | ((b as u32) << 16)
@@ -26,6 +27,7 @@ fn paint(hwnd: HWND, app: &App) {
 
     let gray_pen = unsafe { CreatePen(PS_SOLID, 1, rgb(200, 200, 200)) };
     let black_brush = unsafe { CreateSolidBrush(rgb(64, 64, 64)) };
+    let white_brush = unsafe { CreateSolidBrush(rgb(255, 255, 255)) };
 
     // draw vertical lines
     unsafe { SelectObject(hdc, gray_pen) };
@@ -48,23 +50,37 @@ fn paint(hwnd: HWND, app: &App) {
     }
 
     // draw cells
-    unsafe { SelectObject(hdc, black_brush) };
     unsafe { SelectObject(hdc, GetStockObject(NULL_PEN)) };
     for row in 0..height {
         for col in 0..width {
-            if game_of_life.get_cell(row, col) == Cell::Alive {
-                let left = mergin_left + CELL_PIXEL_SIZE * col;
-                let top = mergin_top + CELL_PIXEL_SIZE * row;
-                let right = left + CELL_PIXEL_SIZE;
-                let bottom = top + CELL_PIXEL_SIZE;
-                unsafe { Rectangle(hdc, left as i32, top as i32, right as i32, bottom as i32) };
-            }
+            let brush = match game_of_life.get_cell(row, col) {
+                Cell::Alive => black_brush,
+                Cell::Dead => white_brush,
+            };
+            unsafe { SelectObject(hdc, brush) };
+            let left = mergin_left + CELL_PIXEL_SIZE * col + 1;
+            let top = mergin_top + CELL_PIXEL_SIZE * row + 1;
+            let right = left + CELL_PIXEL_SIZE;
+            let bottom = top + CELL_PIXEL_SIZE;
+            unsafe { Rectangle(hdc, left as i32, top as i32, right as i32, bottom as i32) };
         }
     }
 
+    unsafe { SelectObject(hdc, GetStockObject(NULL_BRUSH)) };
+    unsafe { DeleteObject(white_brush) };
     unsafe { DeleteObject(black_brush) };
     unsafe { DeleteObject(gray_pen) };
     unsafe { EndPaint(hwnd, &ps) };
+}
+
+fn tick(hwnd: HWND, app: &mut App) {
+    app.game_of_life.tick();
+    unsafe { InvalidateRect(hwnd, ptr::null(), false) };
+}
+
+unsafe fn get_app_from_window<'a>(hwnd: HWND) -> Option<&'a mut App> {
+    let user_data = GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut App;
+    user_data.as_mut()
 }
 
 extern "system" fn wndproc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -72,16 +88,23 @@ extern "system" fn wndproc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPA
         WM_CREATE => {
             let create_struct: &CREATESTRUCTW = unsafe { mem::transmute(lparam) };
             unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, create_struct.lpCreateParams as _) };
+            unsafe { SetTimer(hwnd, 1, 1000 / FPS, None) };
             LRESULT::default()
         }
         WM_PAINT => {
-            let user_data = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *const App };
-            if let Some(app) = unsafe { user_data.as_ref() } {
+            if let Some(app) = unsafe { get_app_from_window(hwnd) } {
                 paint(hwnd, app);
             }
             LRESULT::default()
         }
+        WM_TIMER => {
+            if let Some(app) = unsafe { get_app_from_window(hwnd) } {
+                tick(hwnd, app);
+            }
+            LRESULT::default()
+        }
         WM_DESTROY => {
+            unsafe { KillTimer(hwnd, 1) };
             unsafe { PostQuitMessage(0) };
             LRESULT::default()
         }
@@ -118,7 +141,7 @@ fn create_window(app: &mut App, width: i32, height: i32) -> anyhow::Result<HWND>
 
     let hwnd = unsafe {
         CreateWindowExW(
-            Default::default(),
+            WS_EX_COMPOSITED,
             class_name.as_pwstr(),
             "Game of Life",
             WS_OVERLAPPEDWINDOW,

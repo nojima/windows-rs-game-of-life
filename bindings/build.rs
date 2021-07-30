@@ -22,6 +22,8 @@ fn main() {
             SetWindowLongPtrW,
             ShowWindow,
             TranslateMessage,
+            SetTimer,
+            KillTimer,
             CREATESTRUCTW,
             CW_USEDEFAULT,
             IDC_ARROW,
@@ -32,6 +34,7 @@ fn main() {
             WM_KEYUP,
             WM_PAINT,
             WM_QUIT,
+            WM_TIMER,
             WNDCLASSEXW,
             WNDCLASS_STYLES,
         },
@@ -49,6 +52,7 @@ fn main() {
             SelectObject,
             DeleteObject,
             Rectangle,
+            InvalidateRect,
             PAINTSTRUCT,
         }
     }

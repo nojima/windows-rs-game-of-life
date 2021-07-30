@@ -24,10 +24,6 @@ impl fmt::Display for WSTR {
 }
 
 impl WSTR {
-    pub fn len(&self) -> i32 {
-        (self.0.len() - 1) as i32
-    }
-
     pub fn as_pwstr(&mut self) -> PWSTR {
         PWSTR(self.0.as_mut_ptr())
     }
