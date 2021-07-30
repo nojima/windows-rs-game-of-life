@@ -9,7 +9,8 @@ struct App {
     game_of_life: GameOfLife,
 }
 
-const CELL_PIXEL_SIZE: usize = 10;
+const CELL_PIXEL_SIZE: i32 = 10;
+const MARGIN: RECT = RECT { left: 10, top: 10, right: 10, bottom: 10 };
 const FPS: u32 = 15;
 
 fn rgb(r: u8, g: u8, b: u8) -> u32 {
@@ -23,8 +24,6 @@ fn paint(hwnd: HWND, app: &App) {
     let game_of_life = &app.game_of_life;
     let (width, height) = game_of_life.size();
 
-    let (mergin_top, mergin_left) = (10, 10);
-
     let gray_pen = unsafe { CreatePen(PS_SOLID, 1, rgb(200, 200, 200)) };
     let black_brush = unsafe { CreateSolidBrush(rgb(64, 64, 64)) };
     let white_brush = unsafe { CreateSolidBrush(rgb(255, 255, 255)) };
@@ -32,21 +31,21 @@ fn paint(hwnd: HWND, app: &App) {
     // draw vertical lines
     unsafe { SelectObject(hdc, gray_pen) };
     for col in 0..width+1 {
-        let x = mergin_left + CELL_PIXEL_SIZE * col;
-        let y1 = mergin_top;
-        let y2 = mergin_top + CELL_PIXEL_SIZE * height;
-        unsafe { MoveToEx(hdc, x as i32, y1 as i32, ptr::null_mut()) };
-        unsafe { LineTo(hdc, x as i32, y2 as i32) };
+        let x  = MARGIN.left + CELL_PIXEL_SIZE * (col as i32);
+        let y1 = MARGIN.top;
+        let y2 = MARGIN.top + CELL_PIXEL_SIZE * (height as i32);
+        unsafe { MoveToEx(hdc, x, y1, ptr::null_mut()) };
+        unsafe { LineTo(hdc, x, y2) };
     }
 
     // draw horizontal lines
     unsafe { SelectObject(hdc, gray_pen) };
     for row in 0..height+1 {
-        let y = mergin_top + CELL_PIXEL_SIZE * row;
-        let x1 = mergin_left;
-        let x2 = mergin_left + CELL_PIXEL_SIZE * width;
-        unsafe { MoveToEx(hdc, x1 as i32, y as i32, ptr::null_mut()) };
-        unsafe { LineTo(hdc, x2 as i32, y as i32) };
+        let y  = MARGIN.top + CELL_PIXEL_SIZE * (row as i32);
+        let x1 = MARGIN.left;
+        let x2 = MARGIN.left + CELL_PIXEL_SIZE * (width as i32);
+        unsafe { MoveToEx(hdc, x1, y, ptr::null_mut()) };
+        unsafe { LineTo(hdc, x2, y) };
     }
 
     // draw cells
@@ -58,11 +57,11 @@ fn paint(hwnd: HWND, app: &App) {
                 Cell::Dead => white_brush,
             };
             unsafe { SelectObject(hdc, brush) };
-            let left = mergin_left + CELL_PIXEL_SIZE * col + 1;
-            let top = mergin_top + CELL_PIXEL_SIZE * row + 1;
-            let right = left + CELL_PIXEL_SIZE;
-            let bottom = top + CELL_PIXEL_SIZE;
-            unsafe { Rectangle(hdc, left as i32, top as i32, right as i32, bottom as i32) };
+            let left   = MARGIN.left + CELL_PIXEL_SIZE * (col as i32) + 1;
+            let top    = MARGIN.top  + CELL_PIXEL_SIZE * (row as i32) + 1;
+            let right  = left + CELL_PIXEL_SIZE;
+            let bottom = top  + CELL_PIXEL_SIZE;
+            unsafe { Rectangle(hdc, left, top, right, bottom) };
         }
     }
 
@@ -112,7 +111,7 @@ extern "system" fn wndproc(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPA
     }
 }
 
-fn create_window(app: &mut App, width: i32, height: i32) -> anyhow::Result<HWND> {
+fn create_window(app: &mut App, size: SIZE) -> anyhow::Result<HWND> {
     let instance = unsafe { GetModuleHandleW(None) };
     anyhow::ensure!(!instance.is_null(), "GetModuleHandleW failed");
 
@@ -134,8 +133,8 @@ fn create_window(app: &mut App, width: i32, height: i32) -> anyhow::Result<HWND>
     let mut window_rect = RECT {
         left: 0,
         top: 0,
-        right: width,
-        bottom: height,
+        right: size.cx,
+        bottom: size.cy,
     };
     unsafe { AdjustWindowRect(&mut window_rect, WS_OVERLAPPEDWINDOW, false) };
 
@@ -175,12 +174,19 @@ fn main_loop() -> anyhow::Result<()> {
     }
 }
 
+fn calculate_window_size(app: &App) -> SIZE {
+    let (width, height) = app.game_of_life.size();
+    let window_width  = MARGIN.left + CELL_PIXEL_SIZE * (width  as i32) + MARGIN.right;
+    let window_height = MARGIN.top  + CELL_PIXEL_SIZE * (height as i32) + MARGIN.top;
+    SIZE { cx: window_width, cy: window_height }
+}
+
 fn main() -> anyhow::Result<()> {
     let mut app = App {
         game_of_life: GameOfLife::new(100, 100)?
     };
-
-    let hwnd = create_window(&mut app, 1020, 1020)?;
+    let window_size = calculate_window_size(&app);
+    let hwnd = create_window(&mut app, window_size)?;
     unsafe { ShowWindow(hwnd, SW_SHOW) };
     main_loop()
 }

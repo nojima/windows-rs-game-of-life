@@ -6,6 +6,7 @@ fn main() {
             POINT,
             PWSTR,
             RECT,
+            SIZE,
         },
         Windows::Win32::Graphics::Gdi::{
             BeginPaint,
