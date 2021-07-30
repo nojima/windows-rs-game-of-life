@@ -1,0 +1,38 @@
+fn main() {
+    windows::build! {
+        Windows::Win32::Foundation::{
+            HINSTANCE,
+            HWND,
+            PWSTR,
+            RECT,
+        },
+        Windows::Win32::System::LibraryLoader::GetModuleHandleW,
+        Windows::Win32::UI::WindowsAndMessaging::{
+            AdjustWindowRect,
+            CreateWindowExW,
+            DefWindowProcW,
+            DispatchMessageW,
+            GetWindowLongW,
+            GetWindowLongPtrW,
+            LoadCursorW,
+            GetMessageW,
+            PostQuitMessage,
+            RegisterClassExW,
+            SetWindowLongPtrW,
+            ShowWindow,
+            TranslateMessage,
+            CREATESTRUCTW,
+            CW_USEDEFAULT,
+            IDC_ARROW,
+            MSG,
+            WM_CREATE,
+            WM_DESTROY,
+            WM_KEYDOWN,
+            WM_KEYUP,
+            WM_PAINT,
+            WM_QUIT,
+            WNDCLASSEXW,
+            WNDCLASS_STYLES,
+        },
+    }
+}
