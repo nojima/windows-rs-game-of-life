@@ -10,3 +10,5 @@ windows = "0.18"
 bindings = { path = "bindings" }
 
 anyhow = "1.0"
+
+rand = "0.8"

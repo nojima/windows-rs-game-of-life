@@ -4,6 +4,7 @@ fn main() {
             HINSTANCE,
             HWND,
             PWSTR,
+            POINT,
             RECT,
         },
         Windows::Win32::System::LibraryLoader::GetModuleHandleW,
@@ -34,5 +35,21 @@ fn main() {
             WNDCLASSEXW,
             WNDCLASS_STYLES,
         },
+        Windows::Win32::Graphics::Gdi::{
+            BeginPaint,
+            EndPaint,
+            GetDC,
+            ReleaseDC,
+            TextOutW,
+            MoveToEx,
+            LineTo,
+            GetStockObject,
+            CreatePen,
+            CreateSolidBrush,
+            SelectObject,
+            DeleteObject,
+            Rectangle,
+            PAINTSTRUCT,
+        }
     }
 }
