@@ -3,7 +3,7 @@ mod wrapper;
 mod wstr;
 
 use bindings::Windows::Win32::{Foundation::*, Graphics::Gdi::*, UI::WindowsAndMessaging::*};
-use wrapper::{Application, DeviceContext, Pen, SolidBrush, StockBrush, StockPen, Timer, Window, main_loop, post_quit_message};
+use wrapper::{application::Application, gdi::{DeviceContext, Pen, SolidBrush, StockBrush, StockPen}, timer::Timer, window::Window, main_loop, post_quit_message};
 use game_of_life::{GameOfLife, Cell};
 
 const CELL_PIXEL_SIZE: i32 = 10;
