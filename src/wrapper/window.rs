@@ -14,7 +14,7 @@ impl Window {
     pub fn create(
         title: &str,
         size: SIZE,
-        wndproc: unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT,
+        wndproc: extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT,
         user_data: *mut c_void,
     ) -> anyhow::Result<()> {
         let instance = unsafe { GetModuleHandleW(None) };

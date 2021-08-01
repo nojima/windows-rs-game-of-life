@@ -3,23 +3,23 @@ use bindings::Windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*};
 
 pub fn run<
     WndProc: FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT + 'static,
-    Action: FnOnce(&Window) -> WndProc + 'static,
+    GenProc: FnOnce(&Window) -> WndProc + 'static,
 >(
     title: &str,
     size: SIZE,
-    action: Action,
+    action: GenProc,
 ) -> anyhow::Result<()> {
     Window::create(
         title,
         size,
-        trampoline::<WndProc, Action>,
+        trampoline::<WndProc, GenProc>,
         Box::into_raw(Box::new(action)) as _,
     )
 }
 
 extern "system" fn trampoline<
     WndProc: FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT + 'static,
-    Action: FnOnce(&Window) -> WndProc + 'static,
+    GenProc: FnOnce(&Window) -> WndProc + 'static,
 >(
     hwnd: HWND,
     message: u32,
@@ -29,10 +29,10 @@ extern "system" fn trampoline<
     match message {
         WM_NCCREATE => {
             let create_struct: &CREATESTRUCTW = unsafe { std::mem::transmute(lparam) };
-            let create_param = create_struct.lpCreateParams as *mut Action;
-            let action = unsafe { Box::from_raw(create_param) };
+            let create_param = create_struct.lpCreateParams as *mut GenProc;
+            let genproc = unsafe { Box::from_raw(create_param) };
             let window = Window::from_handle(hwnd);
-            let wndproc = Box::new(action(&window));
+            let wndproc = Box::new(genproc(&window));
             unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(wndproc) as _) };
             unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
         }
