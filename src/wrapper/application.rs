@@ -1,37 +1,67 @@
 use bindings::Windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*};
 use crate::wrapper::window::Window;
 
-pub struct Application {
-    wndproc: Box<dyn FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT>,
+pub fn run<
+    WndProc: FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT + 'static,
+    Action: FnOnce(&Window) -> WndProc + 'static,
+>(
+    title: &str,
+    size: SIZE,
+    action: Action,
+) -> anyhow::Result<()> {
+
+    Window::create(
+        title, size,
+        trampoline::<WndProc, Action>,
+        Box::into_raw(Box::new(action)) as _
+    )
 }
 
-impl Application {
-    pub fn create(
-        title: &str,
-        size: SIZE,
-        wndproc: impl FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT + 'static,
-    ) -> anyhow::Result<(Box<Application>, Window)> {
-        let mut app = Box::new(Application {
-            wndproc: Box::new(wndproc),
-        });
-        let window = Window::create(
-            title, size, trampoline, app.as_mut() as *mut Application as _
-        )?;
-        Ok((app, window))
+extern "system"
+fn trampoline<
+    WndProc: FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT + 'static,
+    Action: FnOnce(&Window) -> WndProc + 'static,
+>(
+    hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM
+) -> LRESULT {
+    match message {
+        WM_NCCREATE => {
+            let create_struct: &CREATESTRUCTW = unsafe { std::mem::transmute(lparam) };
+            let create_param = create_struct.lpCreateParams as *mut Action;
+            let action = unsafe { Box::from_raw(create_param) };
+            let window = Window::from_handle(hwnd);
+            let wndproc = Box::new(action(&window));
+            unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, Box::into_raw(wndproc) as _) };
+            unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
+        }
+        WM_NCDESTROY => {
+            let user_data = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut WndProc };
+            let _wndproc = unsafe { Box::from_raw(user_data) };
+            unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
+        }
+        _ => {
+            let user_data = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut WndProc };
+            if let Some(wndproc) = unsafe { user_data.as_mut() } {
+                let window = Window::from_handle(hwnd);
+                wndproc(&window, message, wparam, lparam)
+            } else {
+                unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
+            }
+        }
     }
 }
 
-extern "system" fn trampoline(hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
-    if message == WM_CREATE {
-        let create_struct: &CREATESTRUCTW = unsafe { std::mem::transmute(lparam) };
-        unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, create_struct.lpCreateParams as _) };
-    }
-
-    let user_data = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut Application };
-    if let Some(app) = unsafe { user_data.as_mut() } {
-        let window = Window::from_handle(hwnd);
-        (app.wndproc)(&window, message, wparam, lparam)
-    } else {
-        unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
+pub fn main_loop() -> anyhow::Result<()> {
+    loop {
+        let mut message = MSG::default();
+        let ret = unsafe { GetMessageW(&mut message, None, 0, 0) }.0;
+        if ret == -1 {
+            anyhow::bail!("GetMessageW failed");
+        }
+        if ret == 0 {
+            return Ok(());
+        }
+        unsafe { TranslateMessage(&message) };
+        unsafe { DispatchMessageW(&message) };
     }
 }

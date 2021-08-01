@@ -13,7 +13,7 @@ impl Window {
         size: SIZE,
         wndproc: unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT,
         user_data: *mut c_void,
-    ) -> anyhow::Result<Window> {
+    ) -> anyhow::Result<()> {
 
         let instance = unsafe { GetModuleHandleW(None) };
         anyhow::ensure!(!instance.is_null(), "GetModuleHandleW failed");
@@ -59,7 +59,7 @@ impl Window {
         };
         anyhow::ensure!(!hwnd.is_null(), "CreateWindowExW failed");
 
-        Ok(Window { hwnd })
+        Ok(())
     }
 
     pub fn from_handle(hwnd: HWND) -> Window {

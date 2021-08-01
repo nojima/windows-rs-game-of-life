@@ -3,12 +3,12 @@ mod wrapper;
 mod wstr;
 
 use bindings::Windows::Win32::{Foundation::*, Graphics::Gdi::*, UI::WindowsAndMessaging::*};
-use wrapper::{application::Application, gdi::{DeviceContext, Pen, SolidBrush, StockBrush, StockPen}, timer::Timer, window::Window, main_loop, post_quit_message};
+use wrapper::{application, gdi::{DeviceContext, Pen, SolidBrush, StockBrush, StockPen}, post_quit_message, timer::Timer, window::Window};
 use game_of_life::{GameOfLife, Cell};
 
 const CELL_PIXEL_SIZE: i32 = 10;
 const MARGIN: RECT = RECT { left: 10, top: 10, right: 10, bottom: 10 };
-const FPS: u32 = 15;
+const FPS: u32 = 10;
 
 fn rgb(r: u8, g: u8, b: u8) -> u32 {
     (r as u32) | ((g as u32) << 8) | ((b as u32) << 16)
@@ -79,34 +79,37 @@ fn calculate_window_size(game_of_life: &GameOfLife) -> SIZE {
 fn main() -> anyhow::Result<()> {
     let mut game_of_life = GameOfLife::new(100, 100)?;
     let window_size = calculate_window_size(&game_of_life);
-    let mut timer = None;
 
-    let (_app, window) = Application::create(
-        "Game of Life",
-        window_size,
-        move |window, message, wparam, lparam| {
-            match message {
-                WM_CREATE => {
-                    timer = Some(Timer::set(window, 1, 1000 / FPS).unwrap());
-                    LRESULT::default()
+    application::run(
+        "Game of Life", window_size,
+
+        move |window| {
+            let timer = Timer::set(window, 1, 1000 / FPS).unwrap();
+
+            move |window, message, wparam, lparam| {
+                match message {
+                    WM_CREATE => {
+                        window.show(SW_SHOW);
+                        LRESULT::default()
+                    }
+                    WM_PAINT => {
+                        paint(window, &game_of_life).unwrap();
+                        LRESULT::default()
+                    }
+                    WM_TIMER => {
+                        tick(window, &mut game_of_life).unwrap();
+                        LRESULT::default()
+                    }
+                    WM_DESTROY => {
+                        timer.kill(window);
+                        post_quit_message(0);
+                        LRESULT::default()
+                    }
+                    _ => window.def_window_proc(message, wparam, lparam)
                 }
-                WM_PAINT => {
-                    paint(window, &game_of_life).unwrap();
-                    LRESULT::default()
-                }
-                WM_TIMER => {
-                    tick(window, &mut game_of_life).unwrap();
-                    LRESULT::default()
-                }
-                WM_DESTROY => {
-                    timer.iter().for_each(|t| t.kill(window));
-                    post_quit_message(0);
-                    LRESULT::default()
-                }
-                _ => window.def_window_proc(message, wparam, lparam)
             }
-        })?;
+        }
+    )?;
 
-    window.show(SW_SHOW);
-    main_loop()
+    application::main_loop()
 }

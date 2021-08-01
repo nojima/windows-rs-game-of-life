@@ -47,6 +47,8 @@ fn main() {
             WM_DESTROY,
             WM_KEYDOWN,
             WM_KEYUP,
+            WM_NCDESTROY,
+            WM_NCCREATE,
             WM_PAINT,
             WM_QUIT,
             WM_TIMER,
