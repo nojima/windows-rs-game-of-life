@@ -7,7 +7,12 @@ pub struct WSTR(Vec<u16>);
 
 impl convert::From<&'_ str> for WSTR {
     fn from(s: &'_ str) -> Self {
-        let wsz: Vec<_> = s.encode_utf16().chain(Some(0).into_iter()).collect();
+        const REPLACEMENT_CHARACTER: u16 = 0xFFFD;
+        let wsz: Vec<_> = s
+            .encode_utf16()
+            .map(|c| if c == 0 { REPLACEMENT_CHARACTER } else { c })
+            .chain(Some(0).into_iter())
+            .collect();
         WSTR(wsz)
     }
 }
@@ -35,4 +40,12 @@ fn test_wstr() {
     let ws: WSTR = original.into();
     let s = ws.to_string();
     assert_eq!(original, s);
+}
+
+#[test]
+fn test_wstr_with_zero() {
+    let original = "bad \0 string";
+    let ws: WSTR = original.into();
+    let s = ws.to_string();
+    assert_eq!(s, "bad � string");
 }
