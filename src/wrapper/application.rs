@@ -39,6 +39,7 @@ extern "system" fn trampoline<
         WM_NCDESTROY => {
             let user_data = unsafe { GetWindowLongPtrW(hwnd, GWLP_USERDATA) as *mut WndProc };
             let _wndproc = unsafe { Box::from_raw(user_data) };
+            unsafe { SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0) };
             unsafe { DefWindowProcW(hwnd, message, wparam, lparam) }
         }
         _ => {
