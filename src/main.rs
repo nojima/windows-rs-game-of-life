@@ -1,13 +1,11 @@
 mod game_of_life;
 mod wrapper;
-mod wstr;
 
 use bindings::Windows::Win32::{Foundation::*, Graphics::Gdi::*, UI::WindowsAndMessaging::*};
 use game_of_life::{Cell, GameOfLife};
 use wrapper::{
     application,
     gdi::{DeviceContext, Pen, SolidBrush, StockBrush, StockPen},
-    post_quit_message,
     timer::Timer,
     window::Window,
 };
@@ -112,7 +110,7 @@ fn main() -> anyhow::Result<()> {
             }
             WM_DESTROY => {
                 timer.kill(window);
-                post_quit_message(0);
+                application::post_quit_message(0);
                 LRESULT::default()
             }
             _ => window.def_window_proc(message, wparam, lparam),

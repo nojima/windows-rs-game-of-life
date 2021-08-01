@@ -67,3 +67,7 @@ pub fn main_loop() -> anyhow::Result<()> {
         unsafe { DispatchMessageW(&message) };
     }
 }
+
+pub fn post_quit_message(exit_code: i32) {
+    unsafe { PostQuitMessage(exit_code) };
+}

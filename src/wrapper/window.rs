@@ -1,6 +1,6 @@
 use std::ffi::c_void;
 
-use crate::wstr;
+use crate::wrapper::wstr;
 use bindings::Windows::Win32::{
     Foundation::*, Graphics::Gdi::*, System::LibraryLoader::GetModuleHandleW,
     UI::WindowsAndMessaging::*,
