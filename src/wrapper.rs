@@ -1,7 +1,7 @@
-pub mod window;
 pub mod application;
 pub mod gdi;
 pub mod timer;
+pub mod window;
 
 use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 

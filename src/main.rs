@@ -3,11 +3,22 @@ mod wrapper;
 mod wstr;
 
 use bindings::Windows::Win32::{Foundation::*, Graphics::Gdi::*, UI::WindowsAndMessaging::*};
-use wrapper::{application, gdi::{DeviceContext, Pen, SolidBrush, StockBrush, StockPen}, post_quit_message, timer::Timer, window::Window};
-use game_of_life::{GameOfLife, Cell};
+use game_of_life::{Cell, GameOfLife};
+use wrapper::{
+    application,
+    gdi::{DeviceContext, Pen, SolidBrush, StockBrush, StockPen},
+    post_quit_message,
+    timer::Timer,
+    window::Window,
+};
 
 const CELL_PIXEL_SIZE: i32 = 10;
-const MARGIN: RECT = RECT { left: 10, top: 10, right: 10, bottom: 10 };
+const MARGIN: RECT = RECT {
+    left: 10,
+    top: 10,
+    right: 10,
+    bottom: 10,
+};
 const FPS: u32 = 10;
 
 fn rgb(r: u8, g: u8, b: u8) -> u32 {
@@ -25,8 +36,8 @@ fn paint(window: &Window, game_of_life: &GameOfLife) -> anyhow::Result<()> {
 
     // draw vertical lines
     dc.select_object(&gray_pen)?;
-    for col in 0..width+1 {
-        let x  = MARGIN.left + CELL_PIXEL_SIZE * (col as i32);
+    for col in 0..width + 1 {
+        let x = MARGIN.left + CELL_PIXEL_SIZE * (col as i32);
         let y1 = MARGIN.top;
         let y2 = MARGIN.top + CELL_PIXEL_SIZE * (height as i32);
         dc.move_to(x, y1)?;
@@ -35,8 +46,8 @@ fn paint(window: &Window, game_of_life: &GameOfLife) -> anyhow::Result<()> {
 
     // draw horizontal lines
     dc.select_object(&gray_pen)?;
-    for row in 0..height+1 {
-        let y  = MARGIN.top + CELL_PIXEL_SIZE * (row as i32);
+    for row in 0..height + 1 {
+        let y = MARGIN.top + CELL_PIXEL_SIZE * (row as i32);
         let x1 = MARGIN.left;
         let x2 = MARGIN.left + CELL_PIXEL_SIZE * (width as i32);
         dc.move_to(x1, y)?;
@@ -52,10 +63,10 @@ fn paint(window: &Window, game_of_life: &GameOfLife) -> anyhow::Result<()> {
                 Cell::Dead => &white_brush,
             };
             dc.select_object(brush)?;
-            let left   = MARGIN.left + CELL_PIXEL_SIZE * (col as i32) + 1;
-            let top    = MARGIN.top  + CELL_PIXEL_SIZE * (row as i32) + 1;
-            let right  = left + CELL_PIXEL_SIZE;
-            let bottom = top  + CELL_PIXEL_SIZE;
+            let left = MARGIN.left + CELL_PIXEL_SIZE * (col as i32) + 1;
+            let top = MARGIN.top + CELL_PIXEL_SIZE * (row as i32) + 1;
+            let right = left + CELL_PIXEL_SIZE;
+            let bottom = top + CELL_PIXEL_SIZE;
             dc.rectangle(left, top, right, bottom)?;
         }
     }
@@ -71,45 +82,42 @@ fn tick(window: &Window, game_of_life: &mut GameOfLife) -> anyhow::Result<()> {
 
 fn calculate_window_size(game_of_life: &GameOfLife) -> SIZE {
     let (width, height) = game_of_life.size();
-    let window_width  = MARGIN.left + CELL_PIXEL_SIZE * (width  as i32) + MARGIN.right;
-    let window_height = MARGIN.top  + CELL_PIXEL_SIZE * (height as i32) + MARGIN.top;
-    SIZE { cx: window_width, cy: window_height }
+    let window_width = MARGIN.left + CELL_PIXEL_SIZE * (width as i32) + MARGIN.right;
+    let window_height = MARGIN.top + CELL_PIXEL_SIZE * (height as i32) + MARGIN.top;
+    SIZE {
+        cx: window_width,
+        cy: window_height,
+    }
 }
 
 fn main() -> anyhow::Result<()> {
     let mut game_of_life = GameOfLife::new(100, 100)?;
     let window_size = calculate_window_size(&game_of_life);
 
-    application::run(
-        "Game of Life", window_size,
+    application::run("Game of Life", window_size, move |window| {
+        let timer = Timer::set(window, 1, 1000 / FPS).unwrap();
 
-        move |window| {
-            let timer = Timer::set(window, 1, 1000 / FPS).unwrap();
-
-            move |window, message, wparam, lparam| {
-                match message {
-                    WM_CREATE => {
-                        window.show(SW_SHOW);
-                        LRESULT::default()
-                    }
-                    WM_PAINT => {
-                        paint(window, &game_of_life).unwrap();
-                        LRESULT::default()
-                    }
-                    WM_TIMER => {
-                        tick(window, &mut game_of_life).unwrap();
-                        LRESULT::default()
-                    }
-                    WM_DESTROY => {
-                        timer.kill(window);
-                        post_quit_message(0);
-                        LRESULT::default()
-                    }
-                    _ => window.def_window_proc(message, wparam, lparam)
-                }
+        move |window, message, wparam, lparam| match message {
+            WM_CREATE => {
+                window.show(SW_SHOW);
+                LRESULT::default()
             }
+            WM_PAINT => {
+                paint(window, &game_of_life).unwrap();
+                LRESULT::default()
+            }
+            WM_TIMER => {
+                tick(window, &mut game_of_life).unwrap();
+                LRESULT::default()
+            }
+            WM_DESTROY => {
+                timer.kill(window);
+                post_quit_message(0);
+                LRESULT::default()
+            }
+            _ => window.def_window_proc(message, wparam, lparam),
         }
-    )?;
+    })?;
 
     application::main_loop()
 }

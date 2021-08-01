@@ -1,5 +1,5 @@
-use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 use crate::wrapper::window::Window;
+use bindings::Windows::Win32::UI::WindowsAndMessaging::*;
 
 pub struct Timer {
     id: usize,

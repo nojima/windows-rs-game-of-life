@@ -1,5 +1,5 @@
-use bindings::Windows::Win32::Graphics::Gdi::*;
 use crate::wrapper::window::Window;
+use bindings::Windows::Win32::Graphics::Gdi::*;
 
 pub trait GdiObject {
     fn gdi_object_handle(&self) -> HGDIOBJ;
@@ -17,7 +17,11 @@ impl<'a> DeviceContext<'a> {
         let mut paint_struct: PAINTSTRUCT = Default::default();
         let hdc = unsafe { BeginPaint(hwnd, &mut paint_struct) };
         anyhow::ensure!(!hdc.is_null(), "BeginPaint failed");
-        Ok(DeviceContext { window, hdc, paint_struct })
+        Ok(DeviceContext {
+            window,
+            hdc,
+            paint_struct,
+        })
     }
 
     pub fn select_object(&self, obj: &dyn GdiObject) -> anyhow::Result<()> {
@@ -27,7 +31,9 @@ impl<'a> DeviceContext<'a> {
     }
 
     pub fn move_to(&self, x: i32, y: i32) -> anyhow::Result<()> {
-        unsafe { MoveToEx(self.hdc, x, y, std::ptr::null_mut()) }.ok().map_err(|e| e.into())
+        unsafe { MoveToEx(self.hdc, x, y, std::ptr::null_mut()) }
+            .ok()
+            .map_err(|e| e.into())
     }
 
     pub fn line_to(&self, x: i32, y: i32) -> anyhow::Result<()> {
@@ -35,7 +41,9 @@ impl<'a> DeviceContext<'a> {
     }
 
     pub fn rectangle(&self, left: i32, top: i32, right: i32, bottom: i32) -> anyhow::Result<()> {
-        unsafe { Rectangle(self.hdc, left, top, right, bottom)}.ok().map_err(|e| e.into())
+        unsafe { Rectangle(self.hdc, left, top, right, bottom) }
+            .ok()
+            .map_err(|e| e.into())
     }
 }
 
@@ -77,7 +85,9 @@ pub struct StockPen {
 impl StockPen {
     pub fn null() -> StockPen {
         let handle = unsafe { GetStockObject(NULL_PEN) };
-        StockPen { handle: HPEN(handle.0) }
+        StockPen {
+            handle: HPEN(handle.0),
+        }
     }
 }
 
@@ -118,7 +128,9 @@ pub struct StockBrush {
 impl StockBrush {
     pub fn null() -> StockBrush {
         let handle = unsafe { GetStockObject(NULL_BRUSH) };
-        StockBrush { handle: HBRUSH(handle.0) }
+        StockBrush {
+            handle: HBRUSH(handle.0),
+        }
     }
 }
 

@@ -1,5 +1,5 @@
-use bindings::Windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*};
 use crate::wrapper::window::Window;
+use bindings::Windows::Win32::{Foundation::*, UI::WindowsAndMessaging::*};
 
 pub fn run<
     WndProc: FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT + 'static,
@@ -9,20 +9,22 @@ pub fn run<
     size: SIZE,
     action: Action,
 ) -> anyhow::Result<()> {
-
     Window::create(
-        title, size,
+        title,
+        size,
         trampoline::<WndProc, Action>,
-        Box::into_raw(Box::new(action)) as _
+        Box::into_raw(Box::new(action)) as _,
     )
 }
 
-extern "system"
-fn trampoline<
+extern "system" fn trampoline<
     WndProc: FnMut(&Window, u32, WPARAM, LPARAM) -> LRESULT + 'static,
     Action: FnOnce(&Window) -> WndProc + 'static,
 >(
-    hwnd: HWND, message: u32, wparam: WPARAM, lparam: LPARAM
+    hwnd: HWND,
+    message: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
 ) -> LRESULT {
     match message {
         WM_NCCREATE => {

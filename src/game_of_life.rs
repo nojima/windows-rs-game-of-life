@@ -16,6 +16,8 @@ impl GameOfLife {
         anyhow::ensure!(width > 0 && height > 0, "width and height must be positive");
 
         let mut rng = thread_rng();
+
+        #[rustfmt::skip]
         let cells: Vec<Vec<_>> =
             (0..height).map(|_row| {
                 (0..width).map(|_col| {
@@ -39,6 +41,7 @@ impl GameOfLife {
     pub fn tick(&mut self) {
         let (width, height) = self.size();
 
+        #[rustfmt::skip]
         let next_cells: Vec<Vec<_>> =
             (0..height).map(|row|
                 (0..width).map(|col|
@@ -58,7 +61,7 @@ impl GameOfLife {
                 } else {
                     Cell::Dead
                 }
-            },
+            }
             Cell::Alive => {
                 if n_alive == 2 || n_alive == 3 {
                     Cell::Alive

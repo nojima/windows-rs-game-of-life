@@ -1,7 +1,10 @@
 use std::ffi::c_void;
 
-use bindings::Windows::Win32::{Foundation::*, Graphics::Gdi::*, System::LibraryLoader::GetModuleHandleW, UI::WindowsAndMessaging::*};
 use crate::wstr;
+use bindings::Windows::Win32::{
+    Foundation::*, Graphics::Gdi::*, System::LibraryLoader::GetModuleHandleW,
+    UI::WindowsAndMessaging::*,
+};
 
 pub struct Window {
     hwnd: HWND,
@@ -14,7 +17,6 @@ impl Window {
         wndproc: unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT,
         user_data: *mut c_void,
     ) -> anyhow::Result<()> {
-
         let instance = unsafe { GetModuleHandleW(None) };
         anyhow::ensure!(!instance.is_null(), "GetModuleHandleW failed");
 
@@ -54,7 +56,7 @@ impl Window {
                 None,
                 None,
                 instance,
-                user_data
+                user_data,
             )
         };
         anyhow::ensure!(!hwnd.is_null(), "CreateWindowExW failed");
@@ -75,7 +77,9 @@ impl Window {
     }
 
     pub fn invalidate(&self, erase: bool) -> anyhow::Result<()> {
-        unsafe { InvalidateRect(self.hwnd, std::ptr::null(), erase) }.ok().map_err(|e| e.into())
+        unsafe { InvalidateRect(self.hwnd, std::ptr::null(), erase) }
+            .ok()
+            .map_err(|e| e.into())
     }
 
     pub fn def_window_proc(&self, message: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
